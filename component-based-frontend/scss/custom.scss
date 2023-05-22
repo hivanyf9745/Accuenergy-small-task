@@ -2,8 +2,8 @@
 @import '../node_modules/bootstrap/scss/functions';
 
 // Default variable overrides
-$body-bg: #fff8de;
-$body-color: #99a98f;
+$primary: #00a0af;
+$secondary: #f68c34;
 
 // Required
 @import '../node_modules/bootstrap/scss/variables';
@@ -16,3 +16,45 @@ $body-color: #99a98f;
 @import '../node_modules/bootstrap/scss/reboot';
 @import '../node_modules/bootstrap/scss/type';
 // etc
+
+body {
+  font-size: 62.5%;
+}
+
+h1 {
+  font-size: 2.6rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+p,
+div,
+button {
+  font-size: 1.2rem;
+}
+
+@media only screen and (max-width: 390px) {
+  body {
+    font-size: 30%;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h5 {
+    font-size: 1rem;
+  }
+
+  p,
+  div,
+  button {
+    font-size: 0.9rem;
+  }
+}

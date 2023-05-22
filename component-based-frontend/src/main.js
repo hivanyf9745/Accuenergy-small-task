@@ -14,6 +14,7 @@ import ButtonLocation from './components/ButtonLocation.vue'
 import SearchInput from './components/SearchInput.vue'
 import PageList from './components/PageList.vue'
 import LatestTime from './components/LatestTime.vue'
+import SmallAssessment from './components/SmallAssessment.vue'
 /**************/
 
 const app = createApp(App)
@@ -23,5 +24,6 @@ app.component('button-location', ButtonLocation)
 app.component('search-input', SearchInput)
 app.component('page-list', PageList)
 app.component('latest-time', LatestTime)
+app.component('small-assessment', SmallAssessment)
 
 app.mount('#app')

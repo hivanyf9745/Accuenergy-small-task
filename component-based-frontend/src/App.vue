@@ -1,28 +1,43 @@
 <template>
   <main>
-    <button-location
-      @get-location="getCurrentLocation"
-      :location="currentLocation"
-    ></button-location>
-    <search-input @place-selected="updateLocation"></search-input>
-    <!-- Google Maps Section -->
-    <section class="mt-3">
-      <div v-if="!map" class="d-flex align-items-center mt-2">
-        <div class="spinner-border text-primary mx-3" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-        <div>Loading Current Location...</div>
+    <small-assessment></small-assessment>
+    <div class="col-12 col-lg-8 mx-auto">
+      <button-location
+        @get-location="getCurrentLocation"
+        :location="currentLocation"
+      ></button-location>
+
+      <hr class="my-5" />
+
+      <div class="search-container text-center mt-5">
+        <search-input @place-selected="updateLocation"></search-input>
+        <latest-time :local-time="localTime" :time-zone-id="timeZoneId"></latest-time>
+        <!-- Google Maps Section -->
+        <section class="mt-3">
+          <div v-if="!map" class="d-flex align-items-center mt-2">
+            <div class="spinner-border text-primary mx-3" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <div>Loading Current Location...</div>
+          </div>
+          <div v-else-if="map === 'denied'">User denied Geolocation access</div>
+          <div ref="mapContainer" class="w-100 map-container"></div>
+        </section>
+        <!--  -->
       </div>
-      <div ref="mapContainer" style="height: 400px; width: 100%"></div>
-    </section>
-    <!--  -->
-    <page-list
-      :all-locations="allLocations"
-      :paginated-places="paginatedPlaces"
-      :current-page="currentPage"
-      :total-pages="totalPages"
-    ></page-list>
-    <latest-time :local-time="localTime" :time-zone-id="timeZoneId"></latest-time>
+
+      <page-list
+        :all-locations="allLocations"
+        :paginated-places="paginatedPlaces"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :next-page="nextPage"
+        :previous-page="previousPage"
+        @delete-selected-places="deleteSelectedPlaces"
+        @update-selected-places="updateSelectedPlaces"
+        @update-selected-page="toCurrentPage"
+      ></page-list>
+    </div>
   </main>
 </template>
 
@@ -31,9 +46,11 @@ import ButtonLocation from './components/ButtonLocation.vue'
 import SearchInput from './components/SearchInput.vue'
 import PageList from './components/PageList.vue'
 import LatestTime from './components/LatestTime.vue'
+import SmallAssessment from './components/SmallAssessment.vue'
+import { toRaw } from 'vue'
 
 components: {
-  ButtonLocation, SearchInput, PageList, LatestTime
+  ButtonLocation, SearchInput, PageList, LatestTime, SmallAssessment
 }
 
 export default {
@@ -41,7 +58,6 @@ export default {
     return {
       currentLocation: null,
       map: null,
-      markers: [],
       allLocations: [],
       currentPage: 1,
       itemsPerPage: 10,
@@ -69,17 +85,25 @@ export default {
     initMap() {
       // Set a default location (here, I am pointing at your current location)
       if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-          const defaultLocation = new google.maps.LatLng(
-            position.coords.latitude,
-            position.coords.longitude
-          )
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const defaultLocation = new google.maps.LatLng(
+              position.coords.latitude,
+              position.coords.longitude
+            )
 
-          this.map = new google.maps.Map(this.$refs.mapContainer, {
-            center: defaultLocation,
-            zoom: 12
-          })
-        })
+            this.map = new google.maps.Map(this.$refs.mapContainer, {
+              center: defaultLocation,
+              zoom: 10
+            })
+          },
+          (error) => {
+            alert('Error: ' + error.message)
+            this.map = 'denied'
+          }
+        )
+      } else {
+        alert('Geolocation is not supported by this browser.')
       }
     },
 
@@ -93,7 +117,7 @@ export default {
           map: this.map,
           position: place.geometry.location
         })
-        this.markers.push(marker)
+        place.marker = marker
         // Add the selected property to the place
         place.selected = false
         this.allLocations.push(place)
@@ -104,29 +128,66 @@ export default {
     },
 
     getCurrentLocation() {
-      this.currentLocation = ''
       if (navigator.geolocation) {
+        this.currentLocation = ''
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            const geocoder = new google.maps.Geocoder()
-            const latLng = new google.maps.LatLng(
-              position.coords.latitude,
-              position.coords.longitude
-            )
-
-            geocoder.geocode({ location: latLng }, (results, status) => {
-              if (status === 'OK' && results[0]) {
-                this.currentLocation = results[0].formatted_address
-              } else {
-                console.error('Geocoder failed due to: ' + status)
-              }
-            })
+            this.reverseGeocode(position.coords.latitude, position.coords.longitude)
           },
           (error) => {
-            console.error('Error getting current location: ' + error.message)
+            this.currentLocation = null
+            alert('Error: ' + error.message)
           }
         )
+      } else {
+        alert('Geolocation is not supported by this browser.')
       }
+    },
+
+    reverseGeocode(lat, lng) {
+      const geocoder = new google.maps.Geocoder()
+
+      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          this.currentLocation = results[0].formatted_address
+        } else {
+          this.currentLocation = 'Unable to retrieve your location'
+        }
+      })
+    },
+
+    updateSelectedPlaces(updateSelects) {
+      this.allLocations = updateSelects
+    },
+
+    deleteSelectedPlaces(dummy) {
+      console.log(dummy)
+      this.allLocations = this.allLocations.filter((place, index) => {
+        if (place.selected) {
+          // Remove the marker from the map
+          this.allLocations[index].marker = toRaw(place.marker).setMap(null)
+          return false
+        } else {
+          return true
+        }
+      })
+    },
+
+    // flip the pages
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+      }
+    },
+
+    previousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--
+      }
+    },
+
+    toCurrentPage(updatePage) {
+      this.currentPage = updatePage
     },
 
     fetchTimeZone(place) {
@@ -163,3 +224,10 @@ export default {
   }
 }
 </script>
+
+<style>
+.map-container {
+  height: 25rem;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+</style>

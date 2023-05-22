@@ -2,14 +2,17 @@
   <!-- For Question 2 -->
   <section>
     <h2>Search input location</h2>
-    <input
-      ref="autocompleteInput"
-      v-model="searchInput"
-      type="text"
-      placeholder="Search Location"
-      @keydown.enter="searchLocation"
-    />
-    <button @click="searchLocation" class="btn btn-primary">Search</button>
+    <div class="d-flex justify-content-between align-items-center col-11 col-lg-6 mx-auto">
+      <input
+        ref="autocompleteInput"
+        v-model="searchInput"
+        type="text"
+        placeholder="Search Location"
+        @keydown.enter="searchLocation"
+        class="form-control"
+      />
+      <button @click="searchLocation" class="btn btn-primary">Search</button>
+    </div>
   </section>
 </template>
 
@@ -43,7 +46,6 @@ export default {
       // Whenever the user selects a prediction from the autocomplete dropdown, update the location.
       // this.autocomplete.addListener('place_changed', this.updateLocation
       this.autocomplete.addListener('place_changed', () => {
-        console.log(this.autocomplete)
         const place = this.autocomplete.getPlace()
 
         if (place) {
